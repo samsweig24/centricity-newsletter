@@ -5018,4 +5018,75 @@ document.addEventListener('click', function(e){
 /* STUDY-EQ-END */
 </script>
 
+<script>
+/* GA-EVENTS-START
+   Engagement events for GA4. Everything is wrapped so the page behaves
+   exactly the same if the tag is blocked or has not loaded. */
+(function(){
+  function ev(name, params){
+    try { if (typeof window.gtag === 'function') window.gtag('event', name, params || {}); }
+    catch(e){}
+  }
+
+  /* 1. which sections were actually reached, once each */
+  var seen = {};
+  function sweep(){
+    document.querySelectorAll('#content [data-sec]').forEach(function(s){
+      var key = s.dataset.label || s.getAttribute('data-sec');
+      if (seen[key]) return;
+      var r = s.getBoundingClientRect();
+      if (r.top < window.innerHeight * 0.6 && r.bottom > 0){
+        seen[key] = 1;
+        ev('section_view', { section_name: key });
+      }
+    });
+  }
+  window.addEventListener('scroll', sweep, { passive:true });
+  window.addEventListener('load', sweep);
+  sweep();
+
+  /* 2. accordions and study cards people chose to open */
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[aria-expanded]');
+    if (btn && btn.getAttribute('aria-expanded') === 'false'){
+      var sec = btn.closest('[data-sec]');
+      ev('expand_open', {
+        section_name: sec ? (sec.dataset.label || '') : '',
+        item: (btn.innerText || '').replace(/\s+/g,' ').trim().slice(0, 80)
+      });
+    }
+    var more = e.target.closest('.umore');
+    if (more){
+      var card = more.closest('.uc.st');
+      var t = card ? card.querySelector('.utitle') : null;
+      ev('study_open', { study: t ? t.textContent.trim() : '' });
+    }
+  }, true);
+
+  /* 3. every outbound link, by the words people clicked */
+  document.addEventListener('click', function(e){
+    var a = e.target.closest('a[href^="http"]');
+    if (!a) return;
+    var label = (a.innerText || '').replace(/\s+/g,' ').trim().slice(0, 80);
+    var name = 'link_click';
+    if (a.href.indexOf('1Hbg3GkoGljhuVWoz') > -1) name = 'feedback_click';
+    else if (a.href.indexOf('1FAIpQLScvBulWhEQZ') > -1) name = 'send_a_win_click';
+    ev(name, { link_text: label, link_url: a.href });
+  }, true);
+
+  /* 4. how far down they got */
+  var marks = [25, 50, 75, 100], hit = {};
+  window.addEventListener('scroll', function(){
+    var d = document.documentElement;
+    var max = d.scrollHeight - window.innerHeight;
+    if (max <= 0) return;
+    var pct = (window.scrollY / max) * 100;
+    marks.forEach(function(m){
+      if (!hit[m] && pct >= m - 1){ hit[m] = 1; ev('scroll_depth', { percent: m }); }
+    });
+  }, { passive:true });
+})();
+/* GA-EVENTS-END */
+</script>
+
 </body></html>
